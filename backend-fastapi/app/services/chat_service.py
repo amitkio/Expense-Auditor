@@ -38,12 +38,15 @@ class AuditService:
     async def audit(
         self,
         user_id: str,
+        user_designation: str,
         user_query: str,
         image_blob: str,
         image_url: Optional[str] = None,
     ) -> Dict[str, Any]:
         try:
-            metadata = await self._extract_metadata(user_query, image_url)
+            metadata = await self._extract_metadata(
+                user_query, user_designation, image_url
+            )
 
             limit_data = await self._get_policy_limit(metadata)
             verdict, flag_reason = self._compute_verdict(metadata, limit_data)
@@ -83,9 +86,12 @@ class AuditService:
             return {"verdict": "ERROR", "reasoning": str(e)}
 
     async def _extract_metadata(
-        self, query: str, image_url: Optional[str]
+        self, query: str, user_designation: str, image_url: Optional[str]
     ) -> ReceiptMetadata:
-        content: list[Any] = [{"type": "text", "text": f"User Query: {query}"}]
+        content: list[Any] = [
+            {"type": "text", "text": f"User Query: {query}"},
+            {"type": "text", "text": f"User Role: {user_designation}"},
+        ]
         if image_url:
             content.append({"type": "image_url", "image_url": {"url": image_url}})
 

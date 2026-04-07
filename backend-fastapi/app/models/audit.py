@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 
@@ -36,3 +36,13 @@ class AuditReasoning(BaseModel):
 class AuditOverrideRequest(BaseModel):
     verdict: str
     comment: str
+
+
+class DisputeRequest(BaseModel):
+    reason: str
+
+
+class InviteRequest(BaseModel):
+    email: EmailStr
+    designation: str
+    org_id: str

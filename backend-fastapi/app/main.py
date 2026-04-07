@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import Annotated, Optional
+from typing import Annotated
 from datetime import datetime, timezone
 
 from azure.cosmos import CosmosClient
@@ -11,8 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.security import get_current_user, is_admin
 from app.lib.audit_store import AuditStore
-from app.models.audit import AuditOverrideRequest
-from app.services import blob_service
+from app.models.audit import AuditOverrideRequest, DisputeRequest, InviteRequest
 from app.services.chat_service import AuditService
 from app.services.blob_service import BlobStorageService
 from app.services.policy_service import PolicyService
@@ -101,6 +100,7 @@ async def handle_audit(
     blob_service: BlobStorageService = state["blob_service"]
 
     user_id = user["user_id"]
+    user_designation = user["role"]
 
     if image:
         try:
@@ -113,6 +113,7 @@ async def handle_audit(
         try:
             audit_result = await audit_service.audit(
                 user_id=user_id,
+                user_designation=user_designation,
                 user_query=message,
                 image_blob=image_blob,
                 image_url=blob_service.generate_sas_url(image_blob),
@@ -167,6 +168,8 @@ async def get_reports(user: Annotated[dict, Depends(get_current_user)]):
                 "verdict": item.get("verdict", "FLAGGED"),
                 "reasoning": item.get("reasoning", "No reasoning provided by AI."),
                 "policy_snippet": item.get("policy_snippet", "N/A"),
+                "dispute_reason": item.get("dispute_reason", ""),
+                "status": item.get("status", ""),
             }
         )
 
@@ -220,6 +223,7 @@ async def get_audit_detail(
         "receipt_url": blob.generate_sas_url(audit_item.get("receipt_blob", "")),
         "status": audit_item.get("status", "ORIGINAL"),
         "override_comment": audit_item.get("override_comment"),
+        "dispute_reason": audit_item.get("dispute_reason"),
     }
 
 
@@ -251,6 +255,82 @@ async def override_audit(
         "new_verdict": body.verdict,
         "auditId": audit_id,
     }
+
+
+@app.post("/api/dispute/{expense_id}")
+async def submit_dispute(
+    expense_id: str,
+    data: DisputeRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+):
+    store: AuditStore = state["audit_store"]
+    user_id = user["user_id"]
+
+    audit = await store.get_audit_by_id(expense_id)
+
+    if not audit:
+        raise HTTPException(status_code=404, detail="Expense record not found.")
+
+    if audit.get("userId") != user_id:
+        raise HTTPException(
+            status_code=403, detail="You are not authorized to dispute this expense."
+        )
+
+    audit["verdict"] = "FLAGGED"
+    audit["dispute_reason"] = data.reason.strip()
+    audit["status"] = "PENDING_REVIEW"
+    audit["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    try:
+        await store.update_audit(audit)
+        return {
+            "message": "Dispute submitted successfully",
+            "id": expense_id,
+            "status": "DISPUTED",
+        }
+    except Exception as e:
+        logger.error(f"Failed to update dispute: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to save dispute to database."
+        )
+
+
+@app.post("/api/invite")
+async def invite_member(
+    payload: InviteRequest,
+    user: Annotated[dict, Depends(get_current_user)],
+):
+    """
+    Invites a new member to the organization with a specific designation.
+    Only accessible by Admins.
+    """
+    is_admin(user)
+
+    clerk_client: Clerk = state["clerk_client"]
+
+    try:
+        invitation = clerk_client.organization_invitations.create(
+            organization_id=payload.org_id,
+            email_address=payload.email,
+            role="org:member",
+            public_metadata={"designation": payload.designation},
+        )
+
+        logger.info(
+            f"Admin {user['user_id']} invited {payload.email} as {payload.designation}"
+        )
+
+        return {
+            "status": "success",
+            "message": f"Invitation sent to {payload.email}",
+            "invitation_id": invitation.id,
+        }
+
+    except Exception as e:
+        logger.error(f"Clerk Invitation failed: {e}")
+        raise HTTPException(
+            status_code=400, detail=f"Failed to send invitation: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

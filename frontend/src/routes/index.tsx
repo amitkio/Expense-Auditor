@@ -1,10 +1,18 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { authStateFn } from "#/utils/auth";
-import { ImageIcon, Send, X, Paperclip, ReceiptText } from "lucide-react";
-import { getToken, useAuth } from "@clerk/tanstack-react-start";
+import {
+  Send,
+  ReceiptText,
+  History,
+  CheckCircle2,
+  AlertCircle,
+  UserCheck,
+} from "lucide-react";
+import { useAuth } from "@clerk/tanstack-react-start";
 import Navbar from "#/components/Navbar";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import UploadModal from "#/components/UploadModal";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -44,202 +52,169 @@ function formatDate(date?: string, fallback?: string) {
   });
 }
 
-interface UploadModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+function ExpandedRow({ expense }: { expense: any }) {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
-function UploadModal({ isOpen, onClose }: UploadModalProps) {
-  if (!isOpen) return null;
-  const [explanation, setExplanation] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const clearImage = () => {
-    setPreview(null);
-    setImageFile(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    const formData = new FormData();
-    formData.append("message", explanation);
-    if (imageFile) {
-      formData.append("image", imageFile);
-    }
-
-    try {
+  const mutation = useMutation({
+    mutationFn: async (reason: string) => {
       const token = await getToken();
-
-      const response = await fetch(`${API_BASE}/api/chat`, {
+      const response = await fetch(`${API_BASE}/api/dispute/${expense.id}`, {
         method: "POST",
-        body: formData,
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          reason: reason,
+        }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Success:", data);
-      } else {
-        console.error("Server Error:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Network/Submission failed:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      if (!response.ok) throw new Error("Dispute submission failed");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
 
-  return (
-    <dialog className="modal modal-open bg-black/60 backdrop-blur-sm">
-      <div className="bg-base-300 rounded-2xl p-10">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-base">Submit Expense</h3>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
-            <X size={16} />
-          </button>
-        </div>
-        <div className="flex flex-col md:grid md:grid-cols-2 rounded-4xl border border-base-300 bg-base-300 overflow-hidden">
-          {/* LEFT SIDE: Image or Upload Label */}
-          {preview ? (
-            <div className="relative h-64 md:h-full w-full bg-base-200">
-              <img
-                src={preview}
-                alt="Receipt"
-                className="object-cover w-full h-full"
-              />
-              <button
-                type="button"
-                onClick={clearImage}
-                className="btn btn-circle btn-xs btn-ghost absolute top-4 right-4 bg-base-100/80 backdrop-blur-sm shadow-md"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center gap-2 h-64 md:h-full bg-base-200/50 cursor-pointer hover:bg-base-200 transition-colors p-4 border-b md:border-b-0 md:border-r border-base-300">
-              <ImageIcon size={32} className="opacity-20" />
-              <span className="text-sm opacity-40 italic text-center">
-                Click to attach receipt
-              </span>
-              <span className="text-xs opacity-30">JPG, PNG or PDF</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-            </label>
-          )}
+  const isAlreadyDisputed =
+    expense.status === "PENDING_REVIEW" || expense.is_disputed;
 
-          {/* RIGHT SIDE: The Form */}
-          <form
-            onSubmit={handleSubmit}
-            className="bg-base-200 flex flex-col justify-center"
-          >
-            <fieldset className="fieldset p-5 sm:p-8 md:p-10">
-              <div className="form-control w-full">
-                <label className="label px-1">
-                  <span className="label-text font-bold text-base md:text-lg">
-                    Reason for Expense
-                  </span>
-                </label>
-                <textarea
-                  required
-                  className="textarea textarea-bordered h-24 md:h-32 w-full bg-base-300 focus:textarea-primary text-base md:text-lg p-4 md:p-6 rounded-2xl border-2 transition-all leading-relaxed"
-                  placeholder="E.g. Travel to client site..."
-                  value={explanation}
-                  onChange={(e) => setExplanation(e.target.value)}
-                />
-              </div>
-
-              <div className="form-control w-full mt-3">
-                <label className="label px-1">
-                  <span className="label-text font-bold md:text-lg">Date</span>
-                </label>
-                <input
-                  required
-                  type="date"
-                  className="input input-bordered w-full bg-base-300 rounded-xl"
-                />
-              </div>
-
-              <div className="divider my-8 opacity-50"></div>
-
-              <div className="flex justify-center md:justify-end">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`btn btn-primary btn-md md:btn-lg w-full md:w-auto rounded-xl md:rounded-2xl shadow-xl shadow-primary/20 transition-all hover:brightness-110 active:scale-95 ${isSubmitting ? "loading" : ""}`}
-                >
-                  {!isSubmitting && (
-                    <>
-                      <Send size={18} className="mr-2" /> Submit Request
-                    </>
-                  )}
-                  {isSubmitting ? "Sending Request..." : ""}
-                </button>
-              </div>
-            </fieldset>
-          </form>
-        </div>{" "}
-      </div>
-    </dialog>
-  );
-}
-
-function ExpandedRow({ expense }: { expense: any }) {
   return (
     <tr>
-      <td colSpan={6} className="bg-base-200/60 px-6 py-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-[10px] font-bold uppercase opacity-40 mb-1">
-              AI Reasoning
-            </p>
-            <p className="leading-relaxed">{expense.reasoning ?? "—"}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              [
-                "Policy Limit",
-                expense.policy_limit
-                  ? `${expense.policy_limit} ${expense.policy_currency ?? ""}`
-                  : "—",
-              ],
-              ["Limit Type", expense.policy_limit_type ?? "—"],
-              ["Matched Rule", expense.matched_rule ?? "—"],
-              ["Subcategory", expense.subcategory ?? "—"],
-            ].map(([label, value]) => (
-              <div key={label} className="bg-base-100 rounded-lg p-3">
-                <p className="text-[10px] font-bold uppercase opacity-40 mb-1">
-                  {label}
-                </p>
-                <p className="font-medium text-xs leading-snug">{value}</p>
+      <td
+        colSpan={6}
+        className="bg-base-200/60 p-0 overflow-hidden border-b border-base-300"
+      >
+        <div className="p-6 md:p-8 flex flex-col lg:grid lg:grid-cols-12 gap-8 animate-in slide-in-from-top-2 duration-300">
+          {/* LEFT: AI Analysis Summary */}
+          <div className="lg:col-span-5 space-y-4">
+            <div>
+              <p className="text-[10px] font-black uppercase opacity-40 mb-2 tracking-[0.15em]">
+                AI Audit Reasoning
+              </p>
+              <div className="bg-base-100 p-5 rounded-2xl border border-base-300 text-sm leading-relaxed italic shadow-sm">
+                "{expense.reasoning ?? "No reasoning provided by the auditor."}"
               </div>
-            ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-base-100 rounded-xl p-3 border border-base-300">
+                <p className="text-[10px] font-bold uppercase opacity-30 mb-1">
+                  Policy Limit
+                </p>
+                <p className="font-bold text-xs">
+                  ₹{expense.policy_limit || "—"}
+                </p>
+              </div>
+              <div className="bg-base-100 rounded-xl p-3 border border-base-300">
+                <p className="text-[10px] font-bold uppercase opacity-30 mb-1">
+                  Rule Matched
+                </p>
+                <p className="font-bold text-xs truncate">
+                  {expense.matched_rule || "Standard"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="lg:col-span-7 border-t lg:border-t-0 lg:border-l border-base-300 pt-6 lg:pt-0 lg:pl-8">
+            {expense.status === "OVERRIDDEN" ? (
+              <div className="flex flex-col items-center justify-center h-full text-center py-4 bg-primary/5 rounded-2xl border border-primary/10 animate-in fade-in duration-500">
+                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-3">
+                  <UserCheck className="text-primary" size={24} />
+                </div>
+                <p className="text-sm font-black text-primary uppercase tracking-tight">
+                  Admin Final Verdict: {expense.verdict}
+                </p>
+                <div className="mt-3 px-6">
+                  <p className="text-xs italic opacity-70 mb-1">
+                    Manager's Note:
+                  </p>
+                  <p className="text-sm font-medium leading-relaxed italic">
+                    "
+                    {expense.override_comment ||
+                      "Your claim was manually reviewed and finalized."}
+                    "
+                  </p>
+                </div>
+              </div>
+            ) : /* 2. AI APPROVED STATE */
+            expense.verdict === "APPROVED" ? (
+              <div className="flex flex-col items-center justify-center h-full text-center py-4">
+                <CheckCircle2
+                  className="text-success opacity-20 mb-2"
+                  size={32}
+                />
+                <p className="text-xs font-bold opacity-40 uppercase tracking-widest">
+                  Expense Approved
+                </p>
+                <p className="text-[10px] opacity-30 mt-1">
+                  This claim meets all policy requirements.
+                </p>
+              </div>
+            ) : /* 3. DISPUTE UNDER REVIEW STATE */
+            isAlreadyDisputed ? (
+              <div className="flex flex-col items-center justify-center h-full text-center py-4 bg-warning/5 rounded-2xl border border-warning/10">
+                <History className="text-warning mb-2" size={24} />
+                <p className="text-sm font-bold text-warning uppercase">
+                  Dispute Under Review
+                </p>
+                <p className="text-[10px] opacity-60 mt-1 max-w-50">
+                  You have challenged this verdict. An auditor will re-examine
+                  your claim.
+                </p>
+              </div>
+            ) : (
+              /* 4. DEFAULT: DISPUTE FORM */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={14} className="text-error" />
+                  <p className="text-[10px] font-black uppercase opacity-50 tracking-widest">
+                    Dispute this Verdict
+                  </p>
+                </div>
+
+                <textarea
+                  className="textarea textarea-bordered w-full h-28 bg-base-100 text-sm focus:textarea-primary rounded-xl border-2 transition-all"
+                  placeholder="Tell us why the AI got it wrong..."
+                  value={disputeReason}
+                  onChange={(e) => setDisputeReason(e.target.value)}
+                  disabled={mutation.isPending}
+                />
+
+                <div className="flex justify-end items-center gap-4">
+                  {mutation.isError && (
+                    <span className="text-[10px] text-error font-bold">
+                      Submission failed. Try again.
+                    </span>
+                  )}
+                  <button
+                    onClick={() => mutation.mutate(disputeReason)}
+                    disabled={mutation.isPending || !disputeReason.trim()}
+                    className="btn btn-sm btn-error btn-outline rounded-lg px-6 shadow-lg shadow-error/10"
+                  >
+                    {mutation.isPending ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    ) : (
+                      <>
+                        <Send size={14} className="mr-2" /> Submit Dispute
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </td>
     </tr>
   );
 }
-
 function App() {
-  const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [verdictFilter, setVerdictFilter] = useState<string | null>(null);
@@ -259,6 +234,7 @@ function App() {
       return res.json();
     },
     staleTime: 30_000,
+    enabled: isLoaded && isSignedIn,
   });
 
   const counts = (expenses ?? []).reduce(

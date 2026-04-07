@@ -31,6 +31,7 @@ async def get_current_user(
             "user_id": payload.get("sub"),
             "metadata": payload.get("metadata"),
             "org_id": payload.get("org_id"),
+            "role": payload.get("org_metadata", {}).get("designation", "Associate"),
             "email": payload.get("email"),
         }
 
