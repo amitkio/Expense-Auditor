@@ -17,9 +17,12 @@ import UploadModal from "#/components/UploadModal";
 export const Route = createFileRoute("/")({
   component: App,
   beforeLoad: async () => {
-    const { role } = await authStateFn();
+    const { role, orgId } = await authStateFn();
     if (role === "admin") {
       throw redirect({ to: "/dashboard" });
+    }
+    if (!orgId) {
+      throw redirect({ to: "/invite" });
     }
   },
   loader: async ({ context }) => {
