@@ -16,8 +16,7 @@ export function NoOrganisation() {
         <p className="text-base opacity-60 mb-8 leading-relaxed">
           It looks like you aren't part of an organization yet.
           <span className="block mt-2 font-bold text-base-content">
-            You must be invited by an administrator to access the Expense
-            Auditor.
+            You must be invited by an administrator to access Expense Auditor.
           </span>
         </p>
 
