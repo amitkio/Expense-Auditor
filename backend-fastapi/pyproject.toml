@@ -1,0 +1,21 @@
+[project]
+name = "backend-fastapi"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "azure-cosmos>=4.15.0",
+    "azure-storage-blob>=12.28.0",
+    "clerk-backend-api>=5.0.6",
+    "fastapi[standard-no-fastapi-cloud-cli]>=0.135.3",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.1.12",
+    "langchain-pymupdf4llm>=0.5.0",
+    "langchain-text-splitters>=1.1.1",
+    "opencv-python-headless>=4.13.0.92",
+    "pyjwt[crypto]>=2.12.1",
+    "pymupdf-layout>=1.27.2.2",
+]
+[tool.fastapi]
+entrypoint = "app.main:app"
