@@ -101,17 +101,12 @@ function InviteModal({
                 Work Designation
               </span>
             </label>
-            <select
-              className="select select-bordered w-full bg-base-100 rounded-xl"
+            <input
+              className="input w-full bg-base-100 rounded-xl"
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
               disabled={inviteMutation.isPending}
-            >
-              <option value="Director">Director</option>
-              <option value="Manager">Manager</option>
-              <option value="Associate">Associate</option>
-              <option value="Intern">Intern</option>
-            </select>
+            ></input>
           </div>
 
           {inviteMutation.isError && (

@@ -471,7 +471,7 @@ function AdminReportsComponent() {
                     </div>
                     <div className="flex gap-2">
                       <Link
-                        to="/dashboard"
+                        to="/dashboard/expenses"
                         search={{ selectedAuditId: report.id }}
                         className="btn btn-primary btn-sm"
                       >

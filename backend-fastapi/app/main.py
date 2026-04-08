@@ -314,6 +314,7 @@ async def invite_member(
             email_address=payload.email,
             role="org:member",
             public_metadata={"designation": payload.designation},
+            redirect_url="http://localhost:3000/sign-up",
         )
 
         logger.info(

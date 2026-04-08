@@ -13,7 +13,9 @@ import { Route as InviteRouteImport } from './routes/invite'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
+import { Route as DashboardUpload_policyRouteImport } from './routes/dashboard/upload_policy'
 import { Route as DashboardOrganisationRouteImport } from './routes/dashboard/organisation'
 import { Route as DashboardExpensesRouteImport } from './routes/dashboard/expenses'
 
@@ -37,10 +39,20 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const SignUpSplatRoute = SignUpSplatRouteImport.update({
+  id: '/sign-up/$',
+  path: '/sign-up/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInSplatRoute = SignInSplatRouteImport.update({
   id: '/sign-in/$',
   path: '/sign-in/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardUpload_policyRoute = DashboardUpload_policyRouteImport.update({
+  id: '/upload_policy',
+  path: '/upload_policy',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardOrganisationRoute = DashboardOrganisationRouteImport.update({
   id: '/organisation',
@@ -59,7 +71,9 @@ export interface FileRoutesByFullPath {
   '/invite': typeof InviteRoute
   '/dashboard/expenses': typeof DashboardExpensesRoute
   '/dashboard/organisation': typeof DashboardOrganisationRoute
+  '/dashboard/upload_policy': typeof DashboardUpload_policyRoute
   '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -67,7 +81,9 @@ export interface FileRoutesByTo {
   '/invite': typeof InviteRoute
   '/dashboard/expenses': typeof DashboardExpensesRoute
   '/dashboard/organisation': typeof DashboardOrganisationRoute
+  '/dashboard/upload_policy': typeof DashboardUpload_policyRoute
   '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -77,7 +93,9 @@ export interface FileRoutesById {
   '/invite': typeof InviteRoute
   '/dashboard/expenses': typeof DashboardExpensesRoute
   '/dashboard/organisation': typeof DashboardOrganisationRoute
+  '/dashboard/upload_policy': typeof DashboardUpload_policyRoute
   '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -88,7 +106,9 @@ export interface FileRouteTypes {
     | '/invite'
     | '/dashboard/expenses'
     | '/dashboard/organisation'
+    | '/dashboard/upload_policy'
     | '/sign-in/$'
+    | '/sign-up/$'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -96,7 +116,9 @@ export interface FileRouteTypes {
     | '/invite'
     | '/dashboard/expenses'
     | '/dashboard/organisation'
+    | '/dashboard/upload_policy'
     | '/sign-in/$'
+    | '/sign-up/$'
     | '/dashboard'
   id:
     | '__root__'
@@ -105,7 +127,9 @@ export interface FileRouteTypes {
     | '/invite'
     | '/dashboard/expenses'
     | '/dashboard/organisation'
+    | '/dashboard/upload_policy'
     | '/sign-in/$'
+    | '/sign-up/$'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -114,6 +138,7 @@ export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   InviteRoute: typeof InviteRoute
   SignInSplatRoute: typeof SignInSplatRoute
+  SignUpSplatRoute: typeof SignUpSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -146,12 +171,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/sign-up/$': {
+      id: '/sign-up/$'
+      path: '/sign-up/$'
+      fullPath: '/sign-up/$'
+      preLoaderRoute: typeof SignUpSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in/$': {
       id: '/sign-in/$'
       path: '/sign-in/$'
       fullPath: '/sign-in/$'
       preLoaderRoute: typeof SignInSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/upload_policy': {
+      id: '/dashboard/upload_policy'
+      path: '/upload_policy'
+      fullPath: '/dashboard/upload_policy'
+      preLoaderRoute: typeof DashboardUpload_policyRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/organisation': {
       id: '/dashboard/organisation'
@@ -173,12 +212,14 @@ declare module '@tanstack/react-router' {
 interface DashboardRouteRouteChildren {
   DashboardExpensesRoute: typeof DashboardExpensesRoute
   DashboardOrganisationRoute: typeof DashboardOrganisationRoute
+  DashboardUpload_policyRoute: typeof DashboardUpload_policyRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardExpensesRoute: DashboardExpensesRoute,
   DashboardOrganisationRoute: DashboardOrganisationRoute,
+  DashboardUpload_policyRoute: DashboardUpload_policyRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
@@ -191,6 +232,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   InviteRoute: InviteRoute,
   SignInSplatRoute: SignInSplatRoute,
+  SignUpSplatRoute: SignUpSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
