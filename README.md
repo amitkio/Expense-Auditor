@@ -1,8 +1,34 @@
 # Expense Auditor
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![TanStack](https://img.shields.io/badge/TanStack-FF4154?style=flat&logo=react-query&logoColor=white)](https://tanstack.com/)
+[![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=white)](https://react.dev/)
+[![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat&logo=langchain&logoColor=white)](https://www.langchain.com/)
+[![OpenAI](https://img.shields.io/badge/Azure_OpenAI-0078D4?style=flat&logo=openai&logoColor=white)](https://azure.microsoft.com/en-us/products/ai-services/openai-service)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)](https://vercel.com/)
+[![Azure Cosmos DB](https://img.shields.io/badge/Azure_Cosmos_DB-0078D4?style=flat&logo=azure-cosmos-db&logoColor=white)](https://azure.microsoft.com/en-us/services/cosmos-db/)
 
-| Team Directory | Expense Submission | Dispute Resolution |
-| :---: | :---: | :---: |
-| ![Team Directory](https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Team%20Directory.png) | ![Expense Submission](https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Expense%20Submission.gif) | ![Dispute Resolution](https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Dispute%20Resolution.gif) |
+# Preview
+<div>
+
+<details>
+<summary><b>Click to view Expense Submission Flow</b></summary>
+<br />
+<img src="https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Expense%20Submission.gif" />
+</details>
+
+<details>
+<summary><b>Click to view Dispute Resolution</b></summary>
+<br />
+<img src="https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Dispute%20Resolution.gif" />
+</details>
+
+<details>
+<summary><b>Click to view Team Directory</b></summary>
+<br />
+<img src="https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Team%20Directory.png" />
+</details>
+</div>
 
 ## The Problem
 
