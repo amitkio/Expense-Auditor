@@ -1,5 +1,9 @@
 # Expense Auditor
 
+| Team Directory | Expense Submission | Dispute Resolution |
+| :---: | :---: | :---: |
+| ![Team Directory](https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Team%20Directory.png) | ![Expense Submission](https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Expense%20Submission.gif) | ![Dispute Resolution](https://media.githubusercontent.com/media/amitkio/Expense-Auditor/main/media/Dispute%20Resolution.gif) |
+
 ## The Problem
 
 Corporate finance teams manually cross-reference every employee expense receipt against a 40+ page Travel & Expense Policy — a process that is slow, inconsistent, and error-prone. Spending limits vary by employee seniority and location, policy language is often ambiguous, and the sheer volume of monthly receipts creates 3-week reimbursement backlogs. This results in "Spend Leakage" — non-compliant claims slipping through — and high operational costs.
@@ -58,6 +62,7 @@ Key features include:
    UNIQUE_ID=$RANDOM
    COSMOS_ACCOUNT="expense-auditor-db-$UNIQUE_ID"
    OPENAI_ACCOUNT="expense-auditor-ai-$UNIQUE_ID"
+   STORAGE_ACCOUNT="expauditorst$UNIQUE_ID"
    DATABASE_NAME="ExpenseAuditor"
 
    # 2. Create a Resource Group
@@ -99,10 +104,27 @@ Key features include:
       --model-format OpenAI \
       --sku-capacity "10" --sku-name "Standard"
 
-   # 7. Create SQL Database
+   # 7. Create Azure Storage Account (For PDFs/Receipts)
+   az storage account create \
+    --name $STORAGE_ACCOUNT \
+    --resource-group $RESOURCE_GROUP \
+    --location $LOCATION \
+    --sku Standard_LRS \
+    --kind StorageV2
+
+   # 8. Create a Blob Container
+   # Note: This uses the connection string of the account we just created
+   az storage container create \
+      --name "receipts" \
+      --account-name $STORAGE_ACCOUNT \
+      --auth-mode login
+
+   # 9. Create SQL Database
    az cosmosdb sql database create --account-name $COSMOS_ACCOUNT --resource-group $RESOURCE_GROUP --name $DATABASE_NAME
 
-   # 8. Define Vector and Indexing Policies (DiskANN)
+
+
+   # 10. Define Vector and Indexing Policies (DiskANN)
    V_POLICY='{
       "vectorEmbeddings": [
          {"path": "/embedding", "dataType": "float32", "distanceFunction": "cosine", "dimensions": 1536}
@@ -116,7 +138,7 @@ Key features include:
       "vectorIndexes": [{"path": "/embedding", "type": "diskANN"}]
    }'
 
-   # 9. Create Containers
+   # 11. Create Containers
 
    # A. PolicyVectors (Vector Search Enabled with DiskANN)
    az cosmosdb sql container create \
@@ -138,7 +160,7 @@ Key features include:
       --name "AuditHistory" \
       --partition-key-path "/orgId"
 
-   # 10. Output Deployment Keys
+   # 12. Output Deployment Keys
    echo "--- COPY TO YOUR .ENV FILE ---"
    echo "COSMOS_ENDPOINT: https://$COSMOS_ACCOUNT.documents.azure.com:443/"
    az cosmosdb keys list --name $COSMOS_ACCOUNT --resource-group $RESOURCE_GROUP --query "primaryMasterKey" -o tsv
