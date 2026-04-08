@@ -23,12 +23,13 @@ Return ONLY a valid JSON object with these fields (no markdown, no explanation):
                               // attendees, or guests (e.g. "dinner for 3", "lunch with 2 colleagues").
                               // If not explicitly mentioned, ALWAYS return 1. Never infer from receipt items.  "payment_method": string,   // "Credit Card", "Cash", "UPI", etc. Use "Unknown" if not found.
   "notes":          string    // Any other relevant context from the image or query.
+  "is_blurry":      boolean   // Set to true if the receipt image is too blurry, dark, or cropped to confidently read the text.
 }
 
 Rules:
 - Extract "total" as the final amount the employee is claiming (the largest/final amount on the receipt).
 - Do NOT invent data. Use "Unknown" or 0 for missing fields.
-- If the receipt is not visible or unclear, extract what you can from the user query alone.
+- If the receipt is not visible or unclear, set "is_blurry" to true.
 """
 
 EXTRACTION_USER_TEMPLATE = "User Query: {user_query}"

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ImageIcon, Send, X } from "lucide-react";
 import { useAuth } from "@clerk/tanstack-react-start";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -33,18 +34,16 @@ function UploadModal({ isOpen, onClose }: UploadModalProps) {
       });
 
       if (!response.ok) {
-        throw new Error(response.statusText);
+        const res = await response.text();
+        throw new Error(res || "Upload failed");
       }
 
       return response.json();
     },
     onSuccess: (data) => {
-      console.log("Upload Success:", data);
+      toast.success("Receipt processed successfully!");
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       handleClose();
-    },
-    onError: (error) => {
-      console.error("Upload Error:", error);
     },
   });
 

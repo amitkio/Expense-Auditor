@@ -39,6 +39,8 @@ class AuditService:
         self,
         user_id: str,
         user_designation: str,
+        org_id,
+        date: str,
         user_query: str,
         image_blob: str,
         image_url: Optional[str] = None,
@@ -48,7 +50,17 @@ class AuditService:
                 user_query, user_designation, image_url
             )
 
-            limit_data = await self._get_policy_limit(metadata)
+            if getattr(metadata, "is_blurry", False):
+                raise ValueError(
+                    "The receipt image is too blurry or illegible. Please upload a clearer photo."
+                )
+
+            if metadata.date != date:
+                raise ValueError(
+                    f"Date mismatch: The receipt shows {metadata.date}, but the form says {date}."
+                )
+
+            limit_data = await self._get_policy_limit(metadata, org_id)
             verdict, flag_reason = self._compute_verdict(metadata, limit_data)
             reasoning_obj = await self._generate_reasoning(
                 verdict, flag_reason, metadata, limit_data
@@ -78,8 +90,11 @@ class AuditService:
                 },
                 "receipt_blob": image_blob,
             }
-            saved_doc = await self.store.save_audit_result(final_document)
+            saved_doc = await self.store.save_audit_result(final_document, org_id)
             return saved_doc
+
+        except ValueError as ve:
+            raise ve
 
         except Exception as e:
             logger.error(f"Audit Pipeline Failed: {e}", exc_info=True)
@@ -109,12 +124,16 @@ class AuditService:
 
         return result
 
-    async def _get_policy_limit(self, meta: ReceiptMetadata) -> PolicyLimit:
+    async def _get_policy_limit(
+        self, meta: ReceiptMetadata, org_id: str
+    ) -> PolicyLimit:
         # Use the multi_retriever from your policy service
         search_query = (
             f"{meta.category} {meta.subcategory} limit for {meta.level} in {meta.city}"
         )
-        docs = await self.policy_service.retriever.ainvoke(search_query)
+        docs = await self.policy_service.retriever.ainvoke(
+            search_query, search_kwargs={"pre_filter": {"org_id": org_id}}
+        )
         context = "\n\n".join([d.page_content for d in docs])
 
         user_prompt = LIMIT_EXTRACTION_USER_TEMPLATE.format(

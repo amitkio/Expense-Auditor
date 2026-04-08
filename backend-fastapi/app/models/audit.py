@@ -18,6 +18,9 @@ class ReceiptMetadata(BaseModel):
     num_attendees: int = Field(default=1)
     payment_method: str = "Unknown"
     notes: Optional[str] = None
+    is_blurry: bool = Field(
+        description="Set to true if the receipt image is too blurry, dark, or cropped to confidently read the merchant, date, or amount."
+    )
 
 
 class PolicyLimit(BaseModel):

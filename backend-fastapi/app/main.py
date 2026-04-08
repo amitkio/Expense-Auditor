@@ -15,7 +15,7 @@ from app.models.audit import AuditOverrideRequest, DisputeRequest, InviteRequest
 from app.services.chat_service import AuditService
 from app.services.blob_service import BlobStorageService
 from app.services.policy_service import PolicyService
-from app.utils.clerk import fetch_clerk_user_map
+from app.utils.clerk import fetch_clerk_user_map, resolve_user_org_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,14 +72,19 @@ async def health_check():
 
 
 @app.post("/api/upload-policy")
-async def upload_policy(file: Annotated[UploadFile, File()]):
+async def upload_policy(
+    file: Annotated[UploadFile, File()],
+    user: Annotated[dict, Depends(get_current_user)],
+):
+    is_admin(user)
     service: PolicyService = state["policy_service"]
-
     filename = file.filename or "unknown_policy.pdf"
+
+    org_id = await resolve_user_org_id(state["clerk_client"], user["user_id"])
 
     try:
         content = await file.read()
-        child_chunks = await service.process_policy(content, filename)
+        child_chunks = await service.process_policy(content, filename, org_id)
         return {
             "status": "success",
             "filename": filename,
@@ -95,12 +100,14 @@ async def handle_audit(
     message: Annotated[str, Form()],
     user: Annotated[dict, Depends(get_current_user)],
     image: Annotated[UploadFile, File()],
+    date: Annotated[str, Form()],
 ):
     audit_service: AuditService = state["audit_service"]
     blob_service: BlobStorageService = state["blob_service"]
 
     user_id = user["user_id"]
     user_designation = user["role"]
+    org_id = await resolve_user_org_id(state["clerk_client"], user["user_id"])
 
     if image:
         try:
@@ -115,10 +122,15 @@ async def handle_audit(
                 user_id=user_id,
                 user_designation=user_designation,
                 user_query=message,
+                org_id=org_id,
+                date=date,
                 image_blob=image_blob,
                 image_url=blob_service.generate_sas_url(image_blob),
             )
             return {**audit_result, "user_id": user_id}
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
         except Exception as e:
             logger.error(f"Audit pipeline error: {e}", exc_info=True)
             raise HTTPException(
@@ -130,7 +142,9 @@ async def handle_audit(
 async def get_expenses(user: Annotated[dict, Depends(get_current_user)]):
     """Personal history: Simple, fast, and secure."""
     store: AuditStore = state["audit_store"]
-    return await store.get_user_history(user["user_id"])
+    org_id = await resolve_user_org_id(state["clerk_client"], user["user_id"])
+
+    return await store.get_user_history(user["user_id"], org_id)
 
 
 @app.get("/api/reports")
@@ -139,7 +153,9 @@ async def get_reports(user: Annotated[dict, Depends(get_current_user)]):
     is_admin(user)
 
     store: AuditStore = state["audit_store"]
-    all_expenses = await store.get_all_history(limit=50)
+    org_id = await resolve_user_org_id(state["clerk_client"], user["user_id"])
+
+    all_expenses = await store.get_all_history(limit=50, org_id=org_id)
 
     if not all_expenses:
         return []
@@ -185,7 +201,9 @@ async def get_audit_detail(
     clerk_client: Clerk = state["clerk_client"]
     blob: BlobStorageService = state["blob_service"]
 
-    audit_item = await repo.get_audit_by_id(audit_id)
+    org_id = await resolve_user_org_id(state["clerk_client"], user["user_id"])
+
+    audit_item = await repo.get_audit_by_id(audit_id, org_id=org_id)
     if not audit_item:
         raise HTTPException(status_code=404, detail="Audit not found")
 
@@ -238,7 +256,9 @@ async def override_audit(
 
     repo: AuditStore = state["audit_store"]
 
-    audit_item = await repo.get_audit_by_id(audit_id)
+    org_id = await resolve_user_org_id(state["clerk_client"], user["user_id"])
+
+    audit_item = await repo.get_audit_by_id(audit_id, org_id=org_id)
     if not audit_item:
         raise HTTPException(status_code=404, detail="Audit record not found")
 
@@ -265,8 +285,9 @@ async def submit_dispute(
 ):
     store: AuditStore = state["audit_store"]
     user_id = user["user_id"]
+    org_id = await resolve_user_org_id(state["clerk_client"], user["user_id"])
 
-    audit = await store.get_audit_by_id(expense_id)
+    audit = await store.get_audit_by_id(expense_id, org_id=org_id)
 
     if not audit:
         raise HTTPException(status_code=404, detail="Expense record not found.")

@@ -48,7 +48,7 @@ class PolicyService:
             vector_embedding_policy=vector_policy,
             indexing_policy=indexing_policy,
             cosmos_container_properties={
-                "partition_key": {"paths": ["/id"], "kind": "Hash"}
+                "partition_key": {"paths": ["/metadata/org_id"], "kind": "Hash"}
             },
             cosmos_database_properties={},
             database_name="ExpenseAuditor",
@@ -65,7 +65,9 @@ class PolicyService:
             id_key="parent_id",
         )
 
-    async def process_policy(self, file_bytes: bytes, filename: str) -> int:
+    async def process_policy(
+        self, file_bytes: bytes, filename: str, org_id: str
+    ) -> int:
         """
         Parses PDF, chunks it, and uses LangChain to embed and upload to Cosmos DB.
         """
@@ -86,11 +88,13 @@ class PolicyService:
                 parent_id = str(uuid.uuid4())
                 p_chunk.metadata[id_key] = parent_id
                 p_chunk.metadata["source"] = filename
+                p_chunk.metadata["orgId"] = org_id
 
                 child_chunks = child_splitter.split_documents([p_chunk])
                 for c in child_chunks:
-                    c.metadata[id_key] = parent_id  # Link to parent
+                    c.metadata[id_key] = parent_id
                     c.metadata["source"] = filename
+                    c.metadata["orgId"] = org_id
 
                 self.vector_store.add_documents(child_chunks)
 

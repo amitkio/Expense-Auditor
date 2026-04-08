@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Calculator } from "lucide-react";
+import { LayoutDashboard, Users, Calculator, ShieldCheck } from "lucide-react";
 
 export default function Sidebar({ drawerId }: { drawerId: string }) {
   return (
@@ -34,7 +34,7 @@ export default function Sidebar({ drawerId }: { drawerId: string }) {
                   className:
                     "bg-primary text-primary-content shadow-lg shadow-primary/20 hover:bg-primary",
                 }}
-                className="flex items-center gap-3 font-bold py-3 rounded-xl transition-all hover:bg-base-300"
+                className="flex items-center gap-3 font-bold py-3 rounded-xl transition-all hover:bg-base-300 px-4"
               >
                 <LayoutDashboard size={20} />
                 Expense Feed
@@ -48,10 +48,24 @@ export default function Sidebar({ drawerId }: { drawerId: string }) {
                   className:
                     "bg-primary text-primary-content shadow-lg shadow-primary/20 hover:bg-primary",
                 }}
-                className="flex items-center gap-3 font-bold py-3 rounded-xl transition-all hover:bg-base-300"
+                className="flex items-center gap-3 font-bold py-3 rounded-xl transition-all hover:bg-base-300 px-4"
               >
                 <Users size={20} />
                 Team Management
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                to="/dashboard/upload_policy"
+                activeProps={{
+                  className:
+                    "bg-primary text-primary-content shadow-lg shadow-primary/20 hover:bg-primary",
+                }}
+                className="flex items-center gap-3 font-bold py-3 rounded-xl transition-all hover:bg-base-300 px-4"
+              >
+                <ShieldCheck size={20} />
+                Upload Policy
               </Link>
             </li>
           </ul>
